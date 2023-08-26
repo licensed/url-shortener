@@ -1,21 +1,20 @@
 from flask import Flask, request, jsonify
-import random
-import string
+from flask_restx import Api
+
+from utils import generate_short_url
+from controller import namespace
 import boto3
 
-# from botocore.config import Config
-
 app = Flask(__name__)
+api = Api(app, version='1.0', title='Shorten URLs API',
+          description='Shorten URLs API')
+
+api.add_namespace(namespace)
 
 dynamodb = boto3.resource('dynamodb')
 table_name = 'URLs'
 table = dynamodb.Table(table_name)
 URL_CHARS = 6
-
-
-def generate_short_url():
-    characters = string.ascii_letters + string.digits
-    return ''.join(random.choice(characters) for _ in range(URL_CHARS))
 
 
 @app.route('/shorten', methods=['POST'])
@@ -39,10 +38,8 @@ def shorten_url():
 
 @app.route('/<short_url>', methods=['GET'])
 def redirect_url(short_url):
-    print(short_url)
     response = table.get_item(Key={'short_url': short_url})
     item = response.get('Item')
-    print(item)
     if item:
         return jsonify({'long_url': item['long_url']})
     else:
@@ -76,7 +73,7 @@ def remove_url(short_url):
 
     if item:
         table.delete_item(Key={'short_url': short_url})
-        return jsonify({'message': 'URL removed.'}), 200
+        return jsonify({'message': 'URL removed successfully.'}), 200
     else:
         return jsonify({'error': 'URL not found.'}), 404
 
