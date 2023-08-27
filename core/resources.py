@@ -1,7 +1,7 @@
 from flask_restx import Namespace, Resource, fields
 from flask import request, jsonify
 
-from utils import generate_short_url
+from util import generate_short_url
 
 ns = Namespace('docs', description='ShortenURL')
 

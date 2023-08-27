@@ -1,19 +1,19 @@
 from flask import Flask, request, jsonify, redirect
 from flask_restx import Api
 from flask_caching import Cache
-from utils import generate_short_url
-from .db import table
-from .resources import ns
+from util import generate_short_url
+from core.db import table
+from core.resources import ns
 
-app = Flask(__name__)
-app.config.from_object('config.BaseConfig')
-api = Api(app, version='1.0', title='Shorten URLs API',
+application = Flask(__name__)
+application.config.from_object('config.BaseConfig')
+api = Api(application, version='1.0', title='Shorten URLs API',
           description='Shorten URLs API', doc='/docs',)
 api.add_namespace(ns)
-cache = Cache(app)
+cache = Cache(application)
 
 
-@app.route('/shorten', methods=['POST'])
+@application.route('/shorten', methods=['POST'])
 def shorten_url():
     long_url = request.get_json().get('url')
 
@@ -31,7 +31,7 @@ def shorten_url():
     return jsonify({'short_url': url}), 201
 
 
-@app.route('/<short_url>', methods=['GET'])
+@application.route('/<short_url>', methods=['GET'])
 @cache.cached(timeout=500)
 def redirect_url(short_url):
     response = table.get_item(Key={'short_url': short_url})
@@ -42,7 +42,7 @@ def redirect_url(short_url):
         return jsonify({'error': 'URL not found'}), 404
 
 
-@app.route('/<short_url>/enable', methods=['PUT'])
+@application.route('/<short_url>/enable', methods=['PUT'])
 def enable_url(short_url):
     response = table.get_item(Key={'short_url': short_url})
     item = response.get('Item')
@@ -60,7 +60,7 @@ def enable_url(short_url):
         return jsonify({'error': 'URL not found'}), 404
 
 
-@app.route('/<short_url>/disable', methods=['PUT'])
+@application.route('/<short_url>/disable', methods=['PUT'])
 def disable_url(short_url):
     response = table.get_item(Key={'short_url': short_url})
     item = response.get('Item')
@@ -78,7 +78,7 @@ def disable_url(short_url):
         return jsonify({'error': 'URL not found'}), 404
 
 
-@app.route('/<short_url>/update', methods=['PUT'])
+@application.route('/<short_url>/update', methods=['PUT'])
 def edit_url(short_url):
     data = request.get_json()
     new_long_url = data.get('new_url')
@@ -98,7 +98,7 @@ def edit_url(short_url):
     return jsonify({'message': 'URL updated.'}), 200
 
 
-# @app.route('/delete/<short_url>', methods=['DELETE'])
+# @application.route('/delete/<short_url>', methods=['DELETE'])
 # def remove_url(short_url):
 #     response = table.get_item(Key={'short_url': short_url})
 #     item = response.get('Item')

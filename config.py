@@ -9,6 +9,7 @@ class BaseConfig(object):
     AWS_DEFAULT_REGION = os.environ['AWS_DEFAULT_REGION']
     AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
     AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+    SECRET_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
     CACHE_TYPE = os.environ['CACHE_TYPE']
     CACHE_REDIS_HOST = os.environ['CACHE_REDIS_HOST']
     CACHE_REDIS_PORT = os.environ['CACHE_REDIS_PORT']
