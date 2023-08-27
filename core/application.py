@@ -32,7 +32,7 @@ def shorten_url():
 
 
 @application.route('/<short_url>', methods=['GET'])
-@cache.cached(timeout=500)
+@cache.cached()
 def redirect_url(short_url):
     response = table.get_item(Key={'short_url': short_url})
     item = response.get('Item')
