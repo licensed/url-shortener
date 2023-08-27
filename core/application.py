@@ -13,6 +13,14 @@ api.add_namespace(ns)
 cache = Cache(application)
 
 
+def get_url_item(short_url):
+    response = table.get_item(Key={'short_url': short_url})
+    item = response.get('Item')
+    if item:
+        return item
+    return False
+
+
 @application.route('/shorten', methods=['POST'])
 def shorten_url():
     long_url = request.get_json().get('url')
@@ -20,7 +28,11 @@ def shorten_url():
     if long_url is None:
         return jsonify({'error': 'url is required.'}), 400
 
-    short_url = generate_short_url()
+    # Loop to avoid short_url collision
+    while True:
+        short_url = generate_short_url()
+        if not get_url_item(short_url):
+            break
 
     table.put_item(Item={
         'short_url': short_url,
@@ -34,8 +46,7 @@ def shorten_url():
 @application.route('/<short_url>', methods=['GET'])
 @cache.cached()
 def redirect_url(short_url):
-    response = table.get_item(Key={'short_url': short_url})
-    item = response.get('Item')
+    item = get_url_item(short_url)
     if item and item.get('active') == 1:
         return redirect(item['long_url'])
     else:
@@ -44,8 +55,7 @@ def redirect_url(short_url):
 
 @application.route('/<short_url>/enable', methods=['PUT'])
 def enable_url(short_url):
-    response = table.get_item(Key={'short_url': short_url})
-    item = response.get('Item')
+    item = get_url_item(short_url)
     if item:
         if item.get('active') == 1:
             return jsonify({'message': 'URL is already enabled.'}), 200
@@ -62,29 +72,25 @@ def enable_url(short_url):
 
 @application.route('/<short_url>/disable', methods=['PUT'])
 def disable_url(short_url):
-    response = table.get_item(Key={'short_url': short_url})
-    item = response.get('Item')
-    if item:
-        if item.get('active') == 0:
-            return jsonify({'message': 'URL is already deactivated.'}), 200
-        else:
-            table.update_item(
-                Key={'short_url': short_url},
-                UpdateExpression='SET active = :new_status',
-                ExpressionAttributeValues={':new_status': 0}
-            )
-            return jsonify({'message': 'URL Deactivated.'}), 200
-    else:
+    item = get_url_item(short_url)
+    if not item:
         return jsonify({'error': 'URL not found'}), 404
+    if item.get('active') == 0:
+        return jsonify({'message': 'URL is already deactivated.'}), 200
+    else:
+        table.update_item(
+            Key={'short_url': short_url},
+            UpdateExpression='SET active = :new_status',
+            ExpressionAttributeValues={':new_status': 0}
+        )
+        return jsonify({'message': 'URL Deactivated.'}), 200
 
 
 @application.route('/<short_url>/update', methods=['PUT'])
 def edit_url(short_url):
     data = request.get_json()
     new_long_url = data.get('new_url')
-
-    response = table.get_item(Key={'short_url': short_url})
-    item = response.get('Item')
+    item = get_url_item(short_url)
 
     if not item:
         return jsonify({'error': 'URL not found.'}), 404
@@ -100,8 +106,7 @@ def edit_url(short_url):
 
 # @application.route('/delete/<short_url>', methods=['DELETE'])
 # def remove_url(short_url):
-#     response = table.get_item(Key={'short_url': short_url})
-#     item = response.get('Item')
+#     item = get_url_item(short_url)
 #
 #     if item:
 #         table.delete_item(Key={'short_url': short_url})
